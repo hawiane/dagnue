@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dagnue.Launcher/Dagnue.Launcher.csproj" />
+    <Project Path="src/Nexus.App/Nexus.App.csproj" />
+    <Project Path="src/Nexus.Core/Nexus.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Nexus.Core.Tests/Nexus.Core.Tests.csproj" />
+  </Folder>
+</Solution>

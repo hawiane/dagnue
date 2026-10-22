@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UserControl
+    x:Class="Nexus.App.Controls.OrbitalNavigationControl"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <UserControl.Resources>
+        <FontFamily x:Key="OrbitronFont">ms-appx:///Assets/Fonts/Orbitron-Medium.ttf#Orbitron Medium</FontFamily>
+        <Style x:Key="RadialCellButtonStyle" TargetType="Button">
+            <Setter Property="Width" Value="82" />
+            <Setter Property="Height" Value="46" />
+            <Setter Property="Padding" Value="2,0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Foreground" Value="#FFF5FCFF" />
+            <Setter Property="FontFamily" Value="{StaticResource OrbitronFont}" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Grid x:Name="Cell" Background="{TemplateBinding Background}" RenderTransformOrigin="0.5,0.5">
+                            <Grid.RenderTransform><CompositeTransform x:Name="CellTransform" /></Grid.RenderTransform>
+                            <Path x:Name="HoverAura" Data="M 8,0 L 74,0 L 82,8 L 82,38 L 74,46 L 8,46 L 0,38 L 0,8 Z"
+                                  Stretch="Fill" Fill="#3D00E5D0" Margin="1" Opacity="0" IsHitTestVisible="False" />
+                            <Path x:Name="HoverPlate" Data="M 6,0 L 76,0 L 82,7 L 82,39 L 76,46 L 6,46 L 0,39 L 0,7 Z"
+                                  Stretch="Fill" Fill="#4A00CDBB" Margin="1" Opacity="0" IsHitTestVisible="False" />
+                            <Path x:Name="HoverTrace" Data="M 0,32 L 0,8 L 8,0 L 28,0 M 54,46 L 74,46 L 82,38 L 82,16"
+                                  Stretch="Fill" Stroke="#EF5DFFF0" StrokeThickness="1.2" Opacity="0" IsHitTestVisible="False" />
+                            <ContentPresenter
+                                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                HorizontalContentAlignment="Center"
+                                VerticalContentAlignment="Center" IsHitTestVisible="False" />
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroup x:Name="CommonStates">
+                                    <VisualStateGroup.Transitions><VisualTransition GeneratedDuration="0:0:0.16" /></VisualStateGroup.Transitions>
+                                    <VisualState x:Name="Normal" />
+                                    <VisualState x:Name="PointerOver"><VisualState.Setters>
+                                        <Setter Target="CellTransform.ScaleX" Value="1.04" /><Setter Target="CellTransform.ScaleY" Value="1.04" />
+                                        <Setter Target="HoverAura.Opacity" Value="0.72" /><Setter Target="HoverPlate.Opacity" Value="0.82" /><Setter Target="HoverTrace.Opacity" Value="1" />
+                                    </VisualState.Setters></VisualState>
+                                    <VisualState x:Name="Pressed"><VisualState.Setters><Setter Target="CellTransform.ScaleX" Value="0.96" /><Setter Target="CellTransform.ScaleY" Value="0.96" /></VisualState.Setters></VisualState>
+                                    <VisualState x:Name="Disabled"><VisualState.Setters><Setter Target="Cell.Opacity" Value="0.3" /></VisualState.Setters></VisualState>
+                                </VisualStateGroup>
+                            </VisualStateManager.VisualStateGroups>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid x:Name="OrbitRoot" IsTabStop="True">
+        <Canvas x:Name="InstrumentCanvas" IsHitTestVisible="False" Visibility="Collapsed">
+            <Ellipse x:Name="OuterOrbit" Stroke="#8CB9F6FF" StrokeThickness="1.3" StrokeDashArray="1,6" />
+            <Ellipse x:Name="MeasureOrbit" Stroke="#78DDFBFF" StrokeThickness="1.4" />
+            <Ellipse x:Name="CellOrbit" Stroke="#A0E8FCFF" StrokeThickness="1.5" StrokeDashArray="34,3" />
+            <Ellipse x:Name="SignalOrbit" Stroke="#F200E5FF" StrokeThickness="3" StrokeDashArray="38,132" RenderTransformOrigin="0.5,0.5">
+                <Ellipse.RenderTransform><RotateTransform x:Name="SignalRotation" /></Ellipse.RenderTransform>
+            </Ellipse>
+            <Canvas x:Name="TickCanvas" />
+            <Canvas x:Name="DecorCellCanvas" />
+            <Line x:Name="TopGuide" Stroke="#B8E7FBFF" StrokeThickness="1.5" />
+            <Line x:Name="BottomGuide" Stroke="#B8E7FBFF" StrokeThickness="1.5" />
+        </Canvas>
+
+        <Canvas x:Name="InteractionCanvas">
+            <Ellipse x:Name="DragTrack" Stroke="#01000000" StrokeThickness="112" />
+            <Button x:Name="CoreOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="core" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="CORE" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="70" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <Button x:Name="ScheduleOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="schedule" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="TASK" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="45" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <Button x:Name="TasksOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="tasks" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="MINI APP" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="8" CharacterSpacing="22" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" TextWrapping="Wrap" />
+            </Button>
+            <Button x:Name="ActivityOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="activity" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="ACTV" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="60" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <Button x:Name="MemoryOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="memory" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="MEM" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="70" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <Button x:Name="SettingsOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="settings" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="CFG" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="70" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <Button x:Name="FindOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="find" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="FIND" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="70" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+            <Button x:Name="AppsOrbitButton" Style="{StaticResource RadialCellButtonStyle}" Tag="apps" AutomationProperties.Name="Open apps control matrix" Click="OrbitButton_Click" PointerEntered="OrbitButton_PointerEntered" PointerExited="OrbitButton_PointerExited">
+                <TextBlock Width="78" Text="APPS" FontFamily="{StaticResource OrbitronFont}" FontWeight="SemiBold" FontSize="10" CharacterSpacing="62" Foreground="#FFFFFFFF" TextAlignment="Center" HorizontalAlignment="Center" VerticalAlignment="Center" />
+            </Button>
+        </Canvas>
+
+        <Canvas x:Name="TelemetryCanvas" IsHitTestVisible="False">
+            <TextBlock x:Name="LeftTelemetryTitle" Visibility="Collapsed" Width="82" Height="16" Text="SYSTEM / LOAD" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#F000DFFF" TextAlignment="Right" />
+            <TextBlock x:Name="OuterCpuText" Visibility="Collapsed" Width="82" Height="16" Text="CPU --%" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#F5F8FDFF" TextAlignment="Right" />
+            <TextBlock x:Name="OuterMemoryText" Visibility="Collapsed" Width="82" Height="16" Text="MEM --%" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#EAF2FAFD" TextAlignment="Right" />
+            <TextBlock x:Name="OuterDiskText" Visibility="Collapsed" Width="82" Height="16" Text="DISK --%" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#EAF2FAFD" TextAlignment="Right" />
+
+            <TextBlock x:Name="RightTelemetryTitle" Width="82" Height="16" Text="NEURAL / LIVE" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#F000DFFF" />
+            <TextBlock x:Name="OuterPowerText" Width="82" Height="16" Text="PWR --" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#F5F8FDFF" />
+            <TextBlock x:Name="OuterNetworkText" Width="82" Height="16" Text="NET --" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#EAF2FAFD" />
+            <TextBlock x:Name="OuterCodexText" Width="82" Height="16" Text="CODEX OFF" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#EAF2FAFD" />
+            <TextBlock x:Name="OuterQueueText" Width="82" Height="16" Text="Q 00 / A 00" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#DDE9F4F8" />
+            <TextBlock x:Name="OuterClockText" Width="82" Height="16" Text="--:-- / --.--" FontFamily="{StaticResource OrbitronFont}" FontSize="8.5" FontWeight="SemiBold" Foreground="#CEDCE8ED" />
+        </Canvas>
+
+        <StackPanel IsHitTestVisible="False" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,8,0,0" Spacing="1">
+            <TextBlock Text="DAGNUE RADIAL COMMAND MATRIX" FontSize="7" CharacterSpacing="145" Foreground="#697D98A1" HorizontalAlignment="Center" />
+            <TextBlock Text="DRAG RING  /  WHEEL SCROLL  /  SELECT CELL" FontSize="7" CharacterSpacing="85" Foreground="#3900E5FF" HorizontalAlignment="Center" />
+        </StackPanel>
+    </Grid>
+</UserControl>

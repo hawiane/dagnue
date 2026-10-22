@@ -1,0 +1,13 @@
+**/bin/
+**/obj/
+.vs/
+.idea/
+.generated/
+.local/
+artifacts/
+*.user
+*.suo
+*.pfx
+tmp/
+TestResults/
+coverage/

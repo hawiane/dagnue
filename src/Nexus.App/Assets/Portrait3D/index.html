@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+  <title>DAGNUE portrait</title>
+  <style>
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#000; cursor:grab; }
+    body.dragging { cursor:grabbing; }
+    canvas { width:100%; height:100%; display:block; touch-action:none;
+      filter:drop-shadow(0 0 .7px rgba(0,229,255,.42)); }
+    #scan { position:fixed; inset:0; pointer-events:none; opacity:.24;
+      background:repeating-linear-gradient(0deg,transparent 0,transparent 3px,rgba(0,229,255,.05) 4px); }
+    #status { position:fixed; left:0; right:0; top:48%; text-align:center; color:#66eaff;
+      font:9px/1.4 'Segoe UI',sans-serif; letter-spacing:2px; text-transform:uppercase; }
+  </style>
+  <script type="importmap">
+    {"imports":{"three":"/Portrait3D/vendor/three.module.js","three/addons/":"/Portrait3D/vendor/addons/"}}
+  </script>
+</head>
+<body>
+  <div id="status">Loading portrait</div><div id="scan"></div>
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+    const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:false, powerPreference:'high-performance' });
+    // The portrait occupies a small HUD cell. A bounded 1.35x surface keeps its
+    // wire lines crisp without allocating a 2x off-screen texture every frame.
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 1.35));
+    renderer.setClearColor(0x000000, 1);
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.0;
+    document.body.prepend(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(27, 1, .01, 100);
+    camera.position.set(0, .02, 4.9);
+    scene.add(new THREE.HemisphereLight(0x8ff5ff, 0x00131b, .78));
+    const key = new THREE.DirectionalLight(0xd9fbff, 1.6); key.position.set(-2.5, 3, 4); scene.add(key);
+    const rim = new THREE.DirectionalLight(0x00dfff, 2.45); rim.position.set(3, 1, -3); scene.add(rim);
+    const fill = new THREE.PointLight(0x007fbb, 1.25, 8); fill.position.set(0, -1, 2); scene.add(fill);
+
+    const root = new THREE.Group(); scene.add(root);
+    const pedestal = new THREE.Group(); pedestal.position.y = -.82; root.add(pedestal);
+    for (const [radius, tube, opacity] of [[.74,.010,.92],[.62,.006,.72],[.51,.004,.58],[.36,.003,.38]]) {
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(radius,tube,8,96),
+        new THREE.MeshBasicMaterial({color:0x00e5ff,transparent:true,opacity,toneMapped:false}));
+      ring.rotation.x = Math.PI/2; pedestal.add(ring);
+    }
+    const disc = new THREE.Mesh(new THREE.CircleGeometry(.68,96),
+      new THREE.MeshBasicMaterial({color:0x003a51,transparent:true,opacity:.16,side:THREE.DoubleSide}));
+    disc.rotation.x = -Math.PI/2; disc.position.y=-.015; pedestal.add(disc);
+
+    const spokePositions=[];
+    for (let index=0; index<32; index++) {
+      const angle=index*Math.PI/16, cosine=Math.cos(angle), sine=Math.sin(angle);
+      spokePositions.push(cosine*.53,.004,sine*.53, cosine*.71,.004,sine*.71);
+    }
+    const spokeGeometry=new THREE.BufferGeometry();
+    spokeGeometry.setAttribute('position',new THREE.Float32BufferAttribute(spokePositions,3));
+    pedestal.add(new THREE.LineSegments(spokeGeometry,
+      new THREE.LineBasicMaterial({color:0x007f9b,transparent:true,opacity:.48,toneMapped:false})));
+    for (let index=0; index<16; index++) {
+      const angle=index*Math.PI/8;
+      const marker=new THREE.Mesh(new THREE.CylinderGeometry(.006,.006,.055,5),
+        new THREE.MeshBasicMaterial({color:0x22eaff,transparent:true,opacity:.72,toneMapped:false}));
+      marker.position.set(Math.cos(angle)*.73,.03,Math.sin(angle)*.73); pedestal.add(marker);
+    }
+
+    // A feathered sprite reads as projected light without exposing hard cone edges.
+    const beamCanvas=document.createElement('canvas'); beamCanvas.width=64; beamCanvas.height=256;
+    const beamContext=beamCanvas.getContext('2d');
+    const verticalFade=beamContext.createLinearGradient(0,0,0,256);
+    verticalFade.addColorStop(0,'rgba(70,240,255,0)');
+    verticalFade.addColorStop(.30,'rgba(70,240,255,.18)');
+    verticalFade.addColorStop(.78,'rgba(70,240,255,.44)');
+    verticalFade.addColorStop(1,'rgba(140,250,255,0)');
+    beamContext.fillStyle=verticalFade; beamContext.fillRect(0,0,64,256);
+    beamContext.globalCompositeOperation='destination-in';
+    const horizontalFade=beamContext.createLinearGradient(0,0,64,0);
+    horizontalFade.addColorStop(0,'rgba(255,255,255,0)');
+    horizontalFade.addColorStop(.42,'rgba(255,255,255,.72)');
+    horizontalFade.addColorStop(.5,'rgba(255,255,255,1)');
+    horizontalFade.addColorStop(.58,'rgba(255,255,255,.72)');
+    horizontalFade.addColorStop(1,'rgba(255,255,255,0)');
+    beamContext.fillStyle=horizontalFade; beamContext.fillRect(0,0,64,256);
+    const beamTexture=new THREE.CanvasTexture(beamCanvas);
+    const beam=new THREE.Sprite(new THREE.SpriteMaterial({map:beamTexture,color:0x52efff,
+      transparent:true,opacity:.36,depthWrite:false,blending:THREE.AdditiveBlending,toneMapped:false}));
+    beam.scale.set(.34,.56,1); beam.position.y=-.53; root.add(beam);
+
+    const particlePositions=[];
+    for (let index=0; index<90; index++) {
+      const phase=index*2.399963, radius=.48+(index%11)*.045;
+      particlePositions.push(Math.cos(phase)*radius,-.67+((index*37)%150)/100,
+        Math.sin(phase)*radius*.58);
+    }
+    const particleGeometry=new THREE.BufferGeometry();
+    particleGeometry.setAttribute('position',new THREE.Float32BufferAttribute(particlePositions,3));
+    root.add(new THREE.Points(particleGeometry,new THREE.PointsMaterial({color:0x4af3ff,size:.032,toneMapped:false,
+      transparent:true,opacity:.82,depthWrite:false,blending:THREE.AdditiveBlending})));
+
+    let portrait;
+    const loader = new GLTFLoader();
+    loader.load('/Models/portrait-bust-wire.glb', gltf => {
+      portrait = gltf.scene;
+      const box = new THREE.Box3().setFromObject(portrait);
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const fit = 1.58 / Math.max(size.y, .001);
+      portrait.position.set(-center.x, -center.y, -center.z);
+      portrait.scale.setScalar(fit);
+      portrait.position.y += .08;
+      const portraitMeshes=[];
+      portrait.traverse(mesh => { if (mesh.isMesh) portraitMeshes.push(mesh); });
+      for (const mesh of portraitMeshes) {
+        mesh.geometry.computeVertexNormals();
+        mesh.material = new THREE.MeshPhongMaterial({
+          color:0x003a4a,
+          emissive:0x001923,
+          shininess:72,
+          transparent:true,
+          opacity:.16,
+          depthWrite:true,
+          side:THREE.DoubleSide
+        });
+        const wire=new THREE.Mesh(mesh.geometry,new THREE.MeshBasicMaterial({
+          color:0x52f4ff,
+          wireframe:true,
+          transparent:true,
+          opacity:.96,
+          depthWrite:false,
+          side:THREE.FrontSide,
+          blending:THREE.NormalBlending,
+          toneMapped:false
+        }));
+        mesh.add(wire);
+        mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry,28),
+          new THREE.LineBasicMaterial({color:0x65f6ff,transparent:true,opacity:.95,toneMapped:false})));
+      }
+      root.add(portrait);
+      document.querySelector('#status').remove();
+      window.chrome?.webview?.postMessage('portrait-ready');
+      requestRender();
+    }, undefined, error => {
+      document.querySelector('#status').textContent = 'Portrait unavailable';
+      window.chrome?.webview?.postMessage('portrait-error:' + (error?.message || 'load failed'));
+    });
+
+    let dragging=false, lastX=0;
+    renderer.domElement.addEventListener('pointerdown', event => {
+      dragging=true; lastX=event.clientX; renderer.domElement.setPointerCapture(event.pointerId);
+      document.body.classList.add('dragging');
+    });
+    renderer.domElement.addEventListener('pointermove', event => {
+      if (!dragging) return;
+      root.rotation.y += (event.clientX-lastX)*.014; lastX=event.clientX; requestRender();
+    });
+    const stopDrag = () => { dragging=false; document.body.classList.remove('dragging'); };
+    renderer.domElement.addEventListener('pointerup', stopDrag);
+    renderer.domElement.addEventListener('pointercancel', stopDrag);
+    renderer.domElement.addEventListener('wheel', event => {
+      event.preventDefault(); camera.position.z = THREE.MathUtils.clamp(camera.position.z + event.deltaY*.0018,3.7,6.0); requestRender();
+    }, {passive:false});
+
+    function resize() {
+      const width=innerWidth, height=innerHeight;
+      renderer.setSize(width,height,false); camera.aspect=width/Math.max(height,1); camera.updateProjectionMatrix(); requestRender();
+    }
+    let renderQueued=false;
+    function requestRender() {
+      if (renderQueued) return;
+      renderQueued=true;
+      requestAnimationFrame(() => { renderQueued=false; renderer.render(scene,camera); });
+    }
+    addEventListener('resize',resize); resize();
+
+    // Slow clockwise turntable motion. Rendering is capped near 20 FPS, and the
+    // automatic motion pauses while the user is dragging the portrait manually.
+    let previousFrame=performance.now(), accumulatedFrameTime=0, externallyPaused=false;
+    window.dagnueSetPaused = value => {
+      externallyPaused=!!value;
+      accumulatedFrameTime=0;
+      if (!externallyPaused) requestRender();
+    };
+    function autoRotate(now) {
+      const elapsed=Math.min(now-previousFrame,100); previousFrame=now;
+      if (!externallyPaused && !dragging && document.visibilityState === 'visible') {
+        accumulatedFrameTime+=elapsed;
+        if (accumulatedFrameTime>=50) {
+          root.rotation.y-=accumulatedFrameTime*.00016;
+          accumulatedFrameTime=0;
+          renderer.render(scene,camera);
+        }
+      } else accumulatedFrameTime=0;
+      requestAnimationFrame(autoRotate);
+    }
+    requestAnimationFrame(autoRotate);
+  </script>
+</body>
+</html>
